@@ -15,3 +15,9 @@ async def live(request: Request):
 async def ready(request: Request):
     await check_database_connection()
     return success_response({"status": "ready", "database": "connected"}, request)
+
+
+@router.get("/health/db")
+async def database(request: Request):
+    await check_database_connection()
+    return success_response({"status": "ok", "database": "connected"}, request)

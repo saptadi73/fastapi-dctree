@@ -1188,10 +1188,11 @@ Jangan mencatat isi baris dataset atau token.
 
 ```http
 GET /health/live
+GET /health/db
 GET /health/ready
 ```
 
-`ready` memeriksa koneksi database, Redis, dan object storage secara ringan.
+`live` hanya memeriksa proses API hidup. `db` memeriksa koneksi database dengan query ringan. `ready` memeriksa kesiapan dependency utama; pada implementasi saat ini `ready` memakai pemeriksaan database.
 
 ---
 
