@@ -890,6 +890,7 @@ GET    /datasets/{dataset_id}/sheets
 POST   /datasets/{dataset_id}/profile
 GET    /datasets/{dataset_id}/profile
 GET    /datasets/{dataset_id}/preview
+GET    /datasets/{dataset_id}/table
 GET    /datasets/{dataset_id}/columns
 POST   /datasets/{dataset_id}/recommend-config
 GET    /datasets/{dataset_id}/eda-visualization
@@ -902,6 +903,52 @@ Upload menggunakan `multipart/form-data`:
 - `project_id`
 - `sheet_name` opsional
 - `header_row` opsional
+
+`GET /datasets/{dataset_id}/table` digunakan frontend untuk menampilkan isi dataset dalam bentuk tabel paginated. Secara default endpoint ini membaca data asli dari file upload, bukan hasil normalisasi.
+
+Query parameter:
+
+| Parameter | Default | Keterangan |
+|---|---:|---|
+| `page` | `1` | Halaman data, dimulai dari 1 |
+| `page_size` | `50` | Jumlah baris per halaman, maksimum 500 |
+| `normalized` | `false` | Jika `true`, tampilkan versi yang sudah melalui normalisasi preprocessing backend |
+
+Contoh:
+
+```http
+GET /api/v1/datasets/{dataset_id}/table?page=1&page_size=50
+GET /api/v1/datasets/{dataset_id}/table?page=1&page_size=50&normalized=true
+```
+
+Contoh respons:
+
+```json
+{
+  "success": true,
+  "data": {
+    "dataset_id": "uuid",
+    "dataset_name": "dataset.xlsx",
+    "source": "original",
+    "columns": ["Nama", "IPK"],
+    "rows": [
+      {
+        "Nama": "Siti",
+        "IPK": 3.5
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "page_size": 50,
+      "total_rows": 519,
+      "total_pages": 11,
+      "has_next": true,
+      "has_previous": false
+    }
+  },
+  "meta": {}
+}
+```
 
 Contoh konfigurasi siap pakai untuk dataset `Pengaruh Medsos Nilai Akademik Mahasiswa Indonesia.xlsx` tersedia di:
 

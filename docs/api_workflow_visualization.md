@@ -26,6 +26,36 @@ Base path: `/api/v1`
 
 ## Endpoint Dataset-Level
 
+### 0. Tabel Dataset Asli
+
+`GET /datasets/{dataset_id}/table`
+
+Fungsi:
+
+- menampilkan isi file upload sebagai tabel paginated;
+- default mengembalikan data asli dari file Excel/CSV;
+- mendukung `normalized=true` untuk melihat data setelah normalisasi backend.
+
+Query parameter:
+
+| Parameter | Default | Keterangan |
+|---|---:|---|
+| `page` | `1` | Halaman data |
+| `page_size` | `50` | Jumlah baris per halaman, maksimum 500 |
+| `normalized` | `false` | Tampilkan versi normalisasi jika `true` |
+
+Contoh:
+
+```http
+GET /api/v1/datasets/{dataset_id}/table?page=1&page_size=50
+```
+
+Frontend use case:
+
+- tabel preview dataset asli;
+- pagination dataset upload;
+- pembanding data asli dan data normalized.
+
 ### 1. Profiling Dataset untuk EDA
 
 `POST /datasets/{dataset_id}/profile`

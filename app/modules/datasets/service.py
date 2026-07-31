@@ -73,6 +73,41 @@ class DatasetService:
             "total_rows": int(len(dataframe)),
         }
 
+    async def get_dataset_table(
+        self,
+        dataset_id,
+        page: int = 1,
+        page_size: int = 50,
+        normalized: bool = False,
+    ):
+        dataset = await self.get_dataset(dataset_id)
+        dataframe = (
+            self._read_dataset_file(dataset.storage_path)
+            if normalized
+            else self._read_original_dataset_file(dataset.storage_path)
+        )
+        total_rows = int(len(dataframe))
+        total_pages = (total_rows + page_size - 1) // page_size if total_rows else 0
+        offset = (page - 1) * page_size
+        page_rows = dataframe.iloc[offset : offset + page_size]
+        rows = json.loads(page_rows.to_json(orient="records"))
+
+        return {
+            "dataset_id": str(dataset.id),
+            "dataset_name": dataset.original_filename,
+            "source": "normalized" if normalized else "original",
+            "columns": dataframe.columns.tolist(),
+            "rows": rows,
+            "pagination": {
+                "page": page,
+                "page_size": page_size,
+                "total_rows": total_rows,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_previous": page > 1,
+            },
+        }
+
     async def recommend_dataset_config(self, dataset_id):
         dataset = await self.get_dataset(dataset_id)
         dataframe = self._read_dataset_file(dataset.storage_path)
@@ -167,3 +202,7 @@ class DatasetService:
         path = Path(storage_path)
         dataframe = load_dataframe_from_bytes(path.suffix.lower(), path.read_bytes())
         return normalize_dataframe(dataframe)
+
+    def _read_original_dataset_file(self, storage_path: str) -> pd.DataFrame:
+        path = Path(storage_path)
+        return load_dataframe_from_bytes(path.suffix.lower(), path.read_bytes())

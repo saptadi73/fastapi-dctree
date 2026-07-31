@@ -63,6 +63,24 @@ async def preview_dataset(
     return success_response(preview, request)
 
 
+@router.get("/{dataset_id}/table")
+async def get_dataset_table(
+    dataset_id: uuid.UUID,
+    request: Request,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=500),
+    normalized: bool = Query(default=False),
+    session: AsyncSession = Depends(get_db_session),
+):
+    table = await DatasetService(session).get_dataset_table(
+        dataset_id,
+        page=page,
+        page_size=page_size,
+        normalized=normalized,
+    )
+    return success_response(table, request)
+
+
 @router.post("/{dataset_id}/recommend-config")
 async def recommend_dataset_config(
     dataset_id: uuid.UUID,
