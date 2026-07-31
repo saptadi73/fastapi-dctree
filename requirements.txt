@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+sqlalchemy
+asyncpg
+psycopg[binary]
+pandas
+numpy
+scikit-learn
+openpyxl
+xlrd
+pytest
+pytest-asyncio
+alembic

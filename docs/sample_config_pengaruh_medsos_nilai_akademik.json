@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0",
+  "task": {
+    "type": "classification",
+    "target_column": "Apakah Anda merasa prestasi akademik (IPK) Anda baik?",
+    "positive_class": "Ya"
+  },
+  "preprocessing": {
+    "mode": "strict",
+    "collapse_rare_study_programs": true,
+    "simplify_social_media_platforms": true,
+    "normalize_binary_labels": true,
+    "normalize_duration_buckets": true
+  },
+  "columns": [
+    {
+      "name": "Nama :",
+      "data_type": "categorical",
+      "role": "identifier",
+      "enabled": false,
+      "encoding": "one_hot"
+    },
+    {
+      "name": "Jenis Kelamin :",
+      "data_type": "categorical",
+      "role": "feature",
+      "enabled": true,
+      "encoding": "one_hot"
+    },
+    {
+      "name": "Tingkat Semester :",
+      "data_type": "numeric",
+      "role": "feature",
+      "enabled": true
+    },
+    {
+      "name": "Program Studi/Jurusan :",
+      "data_type": "categorical",
+      "role": "feature",
+      "enabled": true,
+      "encoding": "one_hot"
+    },
+    {
+      "name": "Berapa lama Anda menggunakan Media Sosial dalam sehari?",
+      "data_type": "categorical",
+      "role": "feature",
+      "enabled": true,
+      "encoding": "one_hot"
+    },
+    {
+      "name": "Berapa lama Anda tidur dalam sehari?",
+      "data_type": "categorical",
+      "role": "feature",
+      "enabled": true,
+      "encoding": "one_hot"
+    },
+    {
+      "name": "Apakah Anda merasa prestasi akademik (IPK) Anda baik?",
+      "data_type": "categorical",
+      "role": "target",
+      "enabled": true,
+      "encoding": "one_hot"
+    },
+    {
+      "name": "Apakah penggunaan Media Sosial dapat mempengaruhi prestasi akademik Anda?",
+      "data_type": "categorical",
+      "role": "feature",
+      "enabled": true,
+      "encoding": "one_hot"
+    },
+    {
+      "name": "Platform Media Sosial apa yang paling sering Anda gunakan?",
+      "data_type": "categorical",
+      "role": "feature",
+      "enabled": true,
+      "encoding": "one_hot"
+    },
+    {
+      "name": "Apakah penggunaan Media Sosial berpengaruh terhadap jam tidur Anda?",
+      "data_type": "categorical",
+      "role": "feature",
+      "enabled": true,
+      "encoding": "one_hot"
+    }
+  ],
+  "split": {
+    "method": "train_test",
+    "test_size": 0.2,
+    "stratify": true,
+    "random_state": 42
+  },
+  "model": {
+    "algorithm": "decision_tree_classifier",
+    "criterion": "gini",
+    "splitter": "best",
+    "max_depth": 4,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "random_state": 42
+  }
+}

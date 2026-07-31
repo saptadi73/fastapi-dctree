@@ -1,0 +1,5 @@
+Gunakan Alembic untuk migrasi schema.
+
+Contoh:
+`alembic upgrade head`
+`alembic revision --autogenerate -m "add table"`
