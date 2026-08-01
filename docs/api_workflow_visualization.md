@@ -24,6 +24,25 @@ Catatan:
 
 Base path: `/api/v1`
 
+## Kontrak Response Frontend
+
+Semua endpoint sukses memakai wrapper standar:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "meta": {
+    "request_id": "request-id",
+    "timestamp": "2026-08-02T00:00:00+00:00"
+  }
+}
+```
+
+Frontend harus membaca payload utama dari `response.data`, bukan dari root
+response. Contoh: hasil metrik ada di `response.data.metrics`, bukan
+`response.metrics`.
+
 ## Endpoint Dataset-Level
 
 ### 0. Tabel Dataset Asli
@@ -482,6 +501,65 @@ Frontend use case:
 - halaman detail experiment run;
 - conditional rendering per langkah.
 
+### 8. Metrics Model
+
+`GET /experiments/runs/{run_id}/metrics`
+
+Fungsi:
+
+- menyediakan aggregate metrics untuk kartu ringkasan global;
+- menyediakan per-class metrics untuk tabel classification report;
+- mengirim angka raw decimal `0-1` agar format akhir dikelola frontend.
+
+Contoh respons:
+
+```json
+{
+  "success": true,
+  "data": {
+    "run_id": "run_uuid",
+    "metrics": {
+      "accuracy": 0.7211538462,
+      "precision": 0.6423117034,
+      "recall": 0.7211538462,
+      "f1_score": 0.6420940171,
+      "f1": 0.6420940171
+    },
+    "class_metrics": [
+      {
+        "class_label": "Tidak",
+        "precision": 0.4,
+        "recall": 0.0714285714,
+        "f1_score": 0.1212121212,
+        "support": 28
+      },
+      {
+        "class_label": "Ya",
+        "precision": 0.7373737374,
+        "recall": 0.9605263158,
+        "f1_score": 0.8342857143,
+        "support": 76
+      }
+    ]
+  },
+  "meta": {}
+}
+```
+
+Frontend parsing:
+
+- Accuracy card: `response.data.metrics.accuracy`.
+- Precision card: `response.data.metrics.precision`.
+- Recall card: `response.data.metrics.recall`.
+- F1 card: gunakan `response.data.metrics.f1_score`; fallback ke `response.data.metrics.f1`.
+- Classification report: `response.data.class_metrics`.
+
+Catatan penting:
+
+- Jangan menganggap field metrics berada di root response.
+- Jangan default ke `0` tanpa menandai field hilang; itu dapat menyamarkan mismatch kontrak API sebagai hasil model valid.
+- Backend mengirim nilai decimal `0-1`. Bila UI ingin persen, frontend yang mengalikan `100`.
+
 ## Contoh Training Dataset Medsos
 
 File contoh:
@@ -556,3 +634,5 @@ Catatan interpretasi:
 4. Untuk tree graph, gunakan `nodes` dan `edges` apa adanya; backend tidak mengirim styling.
 5. Bila ingin satu halaman end-to-end dari upload sampai hasil model, frontend perlu menyimpan `dataset_id` dan `run_id`.
 6. Untuk dataset Excel Anda, mode `strict` memberi hasil visual lebih rapi dengan fitur encoding jauh lebih sedikit dibanding `raw`.
+7. Untuk metric cards, baca aggregate metrics dari `response.data.metrics` dan per-class metrics dari `response.data.class_metrics`.
+8. Hindari fallback diam-diam ke angka `0` ketika field metrics tidak ada; tampilkan state kosong/error agar mismatch API cepat terlihat.

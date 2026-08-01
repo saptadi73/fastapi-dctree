@@ -60,10 +60,17 @@ class ExperimentService:
 
     async def get_metrics(self, run_id):
         run = await self.get_run(run_id)
-        class_metrics = await ExperimentResultRepository(self.repository.session).get_class_metrics(run.id)
+        result_repository = ExperimentResultRepository(self.repository.session)
+        class_metrics = await result_repository.get_class_metrics(run.id)
+        confusion_matrix = await result_repository.get_confusion_matrix(run.id)
+        metrics = self._build_aggregate_metrics(
+            run.result_json.get("metrics", {}),
+            class_metrics,
+            confusion_matrix,
+        )
         return {
             "run_id": str(run.id),
-            "metrics": run.result_json.get("metrics", {}),
+            "metrics": metrics,
             "class_metrics": [
                 {
                     "class_label": row.class_label,
@@ -193,3 +200,35 @@ class ExperimentService:
 
     def _extract_extension(self, filename: str) -> str:
         return f".{filename.split('.')[-1].lower()}" if "." in filename else ""
+
+    def _build_aggregate_metrics(self, stored_metrics, class_metrics, confusion_matrix):
+        metrics = dict(stored_metrics or {})
+
+        total_support = sum(row.support for row in class_metrics)
+        if total_support:
+            metrics.setdefault(
+                "precision",
+                sum(row.precision * row.support for row in class_metrics) / total_support,
+            )
+            metrics.setdefault(
+                "recall",
+                sum(row.recall * row.support for row in class_metrics) / total_support,
+            )
+            metrics.setdefault(
+                "f1_score",
+                sum(row.f1_score * row.support for row in class_metrics) / total_support,
+            )
+
+        total_predictions = sum(row.value for row in confusion_matrix)
+        if total_predictions:
+            correct_predictions = sum(
+                row.value
+                for row in confusion_matrix
+                if row.actual_label == row.predicted_label
+            )
+            metrics.setdefault("accuracy", correct_predictions / total_predictions)
+
+        if "f1_score" in metrics:
+            metrics.setdefault("f1", metrics["f1_score"])
+
+        return metrics

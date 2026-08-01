@@ -182,6 +182,7 @@ def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> 
             "precision": float(weighted_precision),
             "recall": float(weighted_recall),
             "f1_score": float(weighted_f1_score),
+            "f1": float(weighted_f1_score),
         },
         "class_metrics": class_metrics,
         "classification_report": classification_report(
