@@ -626,6 +626,45 @@ Catatan interpretasi:
 | Accuracy, Precision, Recall, F1 | Tersedia | `GET /experiments/runs/{run_id}/metrics` |
 | Visualisasi pohon keputusan | Tersedia | `GET /experiments/runs/{run_id}/tree-visualization` |
 
+## Kontrak Confusion Matrix
+
+`GET /experiments/runs/{run_id}/confusion-matrix`
+
+Frontend harus memakai `values` sebagai matrix 2D sesuai urutan `labels`.
+Baris merepresentasikan actual label, kolom merepresentasikan predicted label.
+
+```json
+{
+  "success": true,
+  "data": {
+    "run_id": "run_uuid",
+    "labels": ["Tidak", "Ya"],
+    "values": [
+      [2, 26],
+      [3, 73]
+    ],
+    "entries": [
+      {
+        "actual_label": "Tidak",
+        "predicted_label": "Tidak",
+        "value": 2
+      }
+    ],
+    "orientation": {
+      "rows": "actual",
+      "columns": "predicted"
+    }
+  },
+  "meta": {}
+}
+```
+
+Catatan frontend:
+
+- Cell matrix dibaca dengan `values[rowIndex][columnIndex]`.
+- Label baris dan kolom diambil dari array `labels`.
+- `entries` disediakan untuk kebutuhan tabel/debug, bukan untuk render grid 2D utama.
+
 ## Catatan untuk Tim Frontend
 
 1. Gunakan `workflow-visualization` untuk halaman hasil berbasis `run`.

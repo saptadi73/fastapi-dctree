@@ -43,20 +43,7 @@ class ExperimentService:
     async def get_confusion_matrix(self, run_id):
         run = await self.get_run(run_id)
         rows = await ExperimentResultRepository(self.repository.session).get_confusion_matrix(run.id)
-        labels = sorted({row.actual_label for row in rows} | {row.predicted_label for row in rows})
-        return {
-            "run_id": str(run.id),
-            "labels": labels,
-            "values": [
-                {
-                    "actual_label": row.actual_label,
-                    "predicted_label": row.predicted_label,
-                    "value": row.value,
-                }
-                for row in rows
-            ],
-            "orientation": {"rows": "actual", "columns": "predicted"},
-        }
+        return self._build_confusion_matrix_payload(run, rows)
 
     async def get_metrics(self, run_id):
         run = await self.get_run(run_id)
@@ -117,6 +104,11 @@ class ExperimentService:
         run = await self.get_run(run_id)
         result = run.result_json
         config = run.config_json
+        result_repository = ExperimentResultRepository(self.repository.session)
+        confusion_matrix = self._build_confusion_matrix_payload(
+            run,
+            await result_repository.get_confusion_matrix(run.id),
+        )
 
         return {
             "run_id": str(run.id),
@@ -172,7 +164,7 @@ class ExperimentService:
                     "status": "available",
                     "visualization_type": "heatmap",
                     "endpoint": f"/api/v1/experiments/runs/{run.id}/confusion-matrix",
-                    "data": result.get("confusion_matrix"),
+                    "data": confusion_matrix,
                 },
                 {
                     "step_number": 6,
@@ -232,3 +224,34 @@ class ExperimentService:
             metrics.setdefault("f1", metrics["f1_score"])
 
         return metrics
+
+    def _build_confusion_matrix_payload(self, run, rows):
+        labels = run.result_json.get("confusion_matrix", {}).get("labels")
+        if not labels:
+            labels = sorted({row.actual_label for row in rows} | {row.predicted_label for row in rows})
+
+        values_by_label = {
+            (row.actual_label, row.predicted_label): row.value
+            for row in rows
+        }
+
+        return {
+            "run_id": str(run.id),
+            "labels": labels,
+            "values": [
+                [
+                    values_by_label.get((actual_label, predicted_label), 0)
+                    for predicted_label in labels
+                ]
+                for actual_label in labels
+            ],
+            "entries": [
+                {
+                    "actual_label": row.actual_label,
+                    "predicted_label": row.predicted_label,
+                    "value": row.value,
+                }
+                for row in rows
+            ],
+            "orientation": {"rows": "actual", "columns": "predicted"},
+        }

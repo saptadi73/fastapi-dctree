@@ -30,7 +30,13 @@ def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> 
         raise ValueError("At least one feature column must be enabled.")
 
     X = dataframe[feature_columns].copy()
-    y = dataframe[target_column].copy()
+    y = dataframe[target_column].map(_format_target_label)
+    valid_target_mask = y.notna()
+    X = X.loc[valid_target_mask]
+    y = y.loc[valid_target_mask]
+
+    if y.empty:
+        raise ValueError("Target column does not contain any usable labels.")
 
     numeric_columns = [col.name for col in enabled_columns if col.role == "feature" and col.data_type == "numeric"]
     categorical_columns = [
@@ -110,7 +116,7 @@ def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> 
     pipeline.fit(X_train, y_train)
     predictions = pipeline.predict(X_test)
 
-    labels = sorted([str(label) for label in y.dropna().unique().tolist()])
+    labels = sorted(y.unique().tolist())
     matrix = confusion_matrix(y_test, predictions, labels=labels)
     precision, recall, f1_score, support = precision_recall_fscore_support(
         y_test,
@@ -257,6 +263,14 @@ def _extract_tree_nodes(
         node["parent_node_id"] = parent_by_child.get(node["node_id"])
 
     return nodes
+
+
+def _format_target_label(value) -> str | None:
+    if pd.isna(value):
+        return None
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value).strip()
 
 
 def _build_tree_edges(nodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
