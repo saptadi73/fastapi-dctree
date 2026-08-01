@@ -118,6 +118,12 @@ def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> 
         labels=labels,
         zero_division=0,
     )
+    weighted_precision, weighted_recall, weighted_f1_score, _ = precision_recall_fscore_support(
+        y_test,
+        predictions,
+        average="weighted",
+        zero_division=0,
+    )
 
     model = pipeline.named_steps["model"]
     preprocessor = pipeline.named_steps["preprocessor"]
@@ -173,6 +179,9 @@ def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> 
         },
         "metrics": {
             "accuracy": float(accuracy_score(y_test, predictions)),
+            "precision": float(weighted_precision),
+            "recall": float(weighted_recall),
+            "f1_score": float(weighted_f1_score),
         },
         "class_metrics": class_metrics,
         "classification_report": classification_report(
