@@ -665,6 +665,48 @@ Catatan frontend:
 - Label baris dan kolom diambil dari array `labels`.
 - `entries` disediakan untuk kebutuhan tabel/debug, bukan untuk render grid 2D utama.
 
+## Kontrak Feature Importance
+
+`GET /experiments/runs/{run_id}/feature-importance`
+
+Frontend sebaiknya memakai `original_feature_importance` untuk chart utama
+"Original feature importance". Field `feature_importance` dan
+`transformed_feature_importance` berisi fitur setelah preprocessing, misalnya
+hasil one-hot encoding.
+
+```json
+{
+  "success": true,
+  "data": {
+    "run_id": "run_uuid",
+    "original_feature_importance": [
+      {
+        "feature_name": "Tingkat Semester",
+        "importance": 0.42,
+        "value": 0.42,
+        "percentage": 42.0
+      }
+    ],
+    "transformed_feature_importance": [
+      {
+        "feature_name": "numeric__Tingkat Semester",
+        "importance": 0.42,
+        "value": 0.42
+      }
+    ],
+    "feature_importance": []
+  },
+  "meta": {}
+}
+```
+
+Catatan frontend:
+
+- Chart utama gunakan `response.data.original_feature_importance`.
+- Nilai `importance` dan `value` memakai skala `0-1`.
+- Nilai `percentage` sudah dalam skala `0-100`.
+- Jika tetap memakai `feature_importance`, nama fitur akan berupa transformed feature dan bisa terlihat panjang/terpecah.
+
 ## Catatan untuk Tim Frontend
 
 1. Gunakan `workflow-visualization` untuk halaman hasil berbasis `run`.

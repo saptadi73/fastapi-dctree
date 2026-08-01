@@ -73,11 +73,23 @@ class ExperimentService:
     async def get_feature_importance(self, run_id):
         run = await self.get_run(run_id)
         rows = await ExperimentResultRepository(self.repository.session).get_feature_importances(run.id)
+        transformed_importance = [
+            {
+                "feature_name": row.feature_name,
+                "importance": row.importance,
+                "value": row.importance,
+            }
+            for row in rows
+        ]
+        original_importance = self._build_original_feature_importance(
+            transformed_importance,
+            run.config_json.get("columns", []),
+        )
         return {
             "run_id": str(run.id),
-            "feature_importance": [
-                {"feature_name": row.feature_name, "importance": row.importance} for row in rows
-            ],
+            "feature_importance": transformed_importance,
+            "transformed_feature_importance": transformed_importance,
+            "original_feature_importance": original_importance,
         }
 
     async def get_preprocessing_summary(self, run_id):
@@ -255,3 +267,50 @@ class ExperimentService:
             ],
             "orientation": {"rows": "actual", "columns": "predicted"},
         }
+
+    def _build_original_feature_importance(self, transformed_importance, config_columns):
+        importance_by_feature: dict[str, float] = {}
+        for row in transformed_importance:
+            original_feature = self._extract_original_feature_name(
+                row["feature_name"],
+                config_columns,
+            )
+            importance_by_feature[original_feature] = (
+                importance_by_feature.get(original_feature, 0.0) + row["importance"]
+            )
+
+        total_importance = sum(importance_by_feature.values())
+        return [
+            {
+                "feature_name": feature_name,
+                "importance": importance,
+                "value": importance,
+                "percentage": (importance / total_importance * 100.0) if total_importance else 0.0,
+            }
+            for feature_name, importance in sorted(
+                importance_by_feature.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+        ]
+
+    def _extract_original_feature_name(self, transformed_feature_name: str, config_columns) -> str:
+        if "__" not in transformed_feature_name:
+            return transformed_feature_name
+
+        _, feature_name = transformed_feature_name.split("__", 1)
+
+        original_features = {
+            column.get("name")
+            for column in config_columns
+            if column.get("role") == "feature"
+        }
+        matching_features = [
+            original_feature
+            for original_feature in original_features
+            if original_feature and feature_name.startswith(f"{original_feature}_")
+        ]
+        if matching_features:
+            return max(matching_features, key=len)
+
+        return feature_name
