@@ -14,9 +14,8 @@ pip install -r requirements.txt
 ```
 
 Create the production `.env` from `.env.example`. Set a PostgreSQL database
-URL, a durable writable `STORAGE_DIR` (outside a release directory), and exact
-frontend origins in `ALLOWED_ORIGINS`. Do not use `*` as an allowed origin when
-the browser sends credentials.
+URL and a durable writable `STORAGE_DIR` (outside a release directory). CORS
+is expected to be handled by Nginx/reverse proxy in front of FastAPI.
 
 ## Migrate before serving
 
