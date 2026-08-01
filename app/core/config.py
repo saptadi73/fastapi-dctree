@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import List
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,9 +12,11 @@ class Settings(BaseSettings):
     database_url: str = Field(
         default="postgresql+asyncpg://openpg:openpgpwd@localhost:5432/dctree"
     )
-    storage_dir: str = "storage"
-    allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    storage_dir: Path = Path("storage")
+    allowed_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
     log_level: str = "INFO"
+    auto_create_schema: bool = False
+    max_upload_size_bytes: int = 25 * 1024 * 1024
 
     model_config = SettingsConfigDict(
         env_file=".env",

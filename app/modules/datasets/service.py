@@ -27,8 +27,16 @@ class DatasetService:
 
     async def upload_dataset(self, project_id: str | None, upload_file: UploadFile) -> Dataset:
         content = await upload_file.read()
+        if not content:
+            raise ValueError("Uploaded file is empty.")
+        if len(content) > self.settings.max_upload_size_bytes:
+            raise ValueError(
+                f"Uploaded file exceeds the {self.settings.max_upload_size_bytes} byte limit."
+            )
         dataset_id = uuid.uuid4()
-        extension = Path(upload_file.filename or "dataset.csv").suffix or ".csv"
+        extension = Path(upload_file.filename or "dataset.csv").suffix.lower() or ".csv"
+        if extension not in {".csv", ".xlsx", ".xls"}:
+            raise ValueError("Unsupported file type. Use CSV, XLSX, or XLS.")
         storage_root = Path(self.settings.storage_dir)
         datasets_dir = storage_root / "datasets"
         datasets_dir.mkdir(parents=True, exist_ok=True)
@@ -45,7 +53,11 @@ class DatasetService:
             sha256=sha256_bytes(content),
             status="UPLOADED",
         )
-        return await self.repository.create(dataset)
+        try:
+            return await self.repository.create(dataset)
+        except Exception:
+            storage_path.unlink(missing_ok=True)
+            raise
 
     async def get_dataset(self, dataset_id):
         dataset = await self.repository.get_by_id(dataset_id)
