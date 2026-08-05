@@ -10,9 +10,10 @@ from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.ml.config_recommender import recommend_config
+from app.ml.config_recommender import PRESETS, recommend_config
 from app.ml.data_loader import load_dataframe_from_bytes
-from app.ml.preprocessing import normalize_dataframe
+from app.ml.preprocessing import normalize_dataframe, transform_target_series
+from app.modules.experiments.schemas import DecisionTreeConfig
 from app.ml.schema_detector import build_dataset_profile
 from app.modules.datasets.models import Dataset
 from app.modules.datasets.repository import DatasetRepository
@@ -120,13 +121,16 @@ class DatasetService:
             },
         }
 
-    async def recommend_dataset_config(self, dataset_id):
+    def list_configuration_presets(self):
+        return [{"id": preset_id, **details} for preset_id, details in PRESETS.items()]
+
+    async def recommend_dataset_config(self, dataset_id, preset: str | None = None):
         dataset = await self.get_dataset(dataset_id)
         dataframe = self._read_dataset_file(dataset.storage_path)
         profile = dataset.profile_json or build_dataset_profile(dataframe)
         if dataset.profile_json is None:
             await self.repository.update_profile(dataset, profile, "PROFILED")
-        return recommend_config(dataframe, profile)
+        return recommend_config(dataframe, profile, preset=preset)
 
     async def get_eda_visualization(self, dataset_id):
         dataset = await self.get_dataset(dataset_id)
@@ -181,20 +185,22 @@ class DatasetService:
             "columns": profile["columns"],
         }
 
-    async def get_target_conversion_preview(self, dataset_id):
+    async def get_target_conversion_preview(self, dataset_id, preset: str | None = None):
         dataset = await self.get_dataset(dataset_id)
         dataframe = self._read_dataset_file(dataset.storage_path)
         profile = dataset.profile_json or build_dataset_profile(dataframe)
         if dataset.profile_json is None:
             await self.repository.update_profile(dataset, profile, "PROFILED")
 
-        recommendation = recommend_config(dataframe, profile)
+        recommendation = recommend_config(dataframe, profile, preset=preset)
         target_column = recommendation["task"].get("target_column")
         positive_class = recommendation["task"].get("positive_class")
         target_distribution = []
 
         if target_column and target_column in dataframe.columns:
-            counts = dataframe[target_column].astype("string").fillna("<NA>").value_counts()
+            validated_config = DecisionTreeConfig.model_validate(recommendation)
+            target = transform_target_series(dataframe[target_column], validated_config.task.target_transform)
+            counts = target.astype("string").fillna("<NA>").value_counts()
             target_distribution = [
                 {"label": label, "count": int(count)}
                 for label, count in counts.items()
@@ -205,6 +211,8 @@ class DatasetService:
             "target_column": target_column,
             "positive_class": positive_class,
             "task_type": recommendation["task"].get("type"),
+            "preset": preset,
+            "target_transform": recommendation["task"].get("target_transform"),
             "target_distribution": target_distribution,
             "recommendations": recommendation.get("recommendations", []),
             "columns": recommendation.get("columns", []),

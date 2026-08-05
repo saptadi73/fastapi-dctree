@@ -152,8 +152,10 @@ class ExperimentService:
                     "visualization_type": "config-summary",
                     "endpoint": None,
                     "data": {
+                        "preset": config.get("preset"),
                         "target_column": config.get("task", {}).get("target_column"),
                         "positive_class": config.get("task", {}).get("positive_class"),
+                        "target_transform": config.get("task", {}).get("target_transform"),
                     },
                 },
                 {

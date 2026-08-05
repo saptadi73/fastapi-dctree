@@ -1,0 +1,13 @@
+INFO:     127.0.0.1:64107 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50661 - "GET /api/v1/health/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57419 - "GET /api/v1/health/db HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59314 - "GET /api/v1/health/ready HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59314 - "GET /api/v1/datasets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59314 - "GET /api/v1/experiments/runs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57419 - "POST /api/v1/datasets/a5661f8d-dbe6-454e-90c5-7b95a362061a/recommend-config HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:61853 - "GET /api/v1/datasets/a5661f8d-dbe6-454e-90c5-7b95a362061a/target-conversion-preview HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:50661 - "GET /api/v1/datasets/a5661f8d-dbe6-454e-90c5-7b95a362061a/preview?limit=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59314 - "POST /api/v1/datasets/a5661f8d-dbe6-454e-90c5-7b95a362061a/profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57419 - "GET /api/v1/datasets/a5661f8d-dbe6-454e-90c5-7b95a362061a/table?page=1&page_size=8&normalized=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60232 - "GET /api/v1/datasets/a5661f8d-dbe6-454e-90c5-7b95a362061a/table?page=1&page_size=8 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61940 - "GET /api/v1/datasets/a5661f8d-dbe6-454e-90c5-7b95a362061a/eda-visualization HTTP/1.1" 200 OK

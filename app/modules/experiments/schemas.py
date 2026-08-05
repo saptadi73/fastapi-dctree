@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -13,10 +13,18 @@ class DecisionTreeColumn(BaseModel):
     categories: list[Any] | None = None
 
 
+class DecisionTreeTargetTransform(BaseModel):
+    type: Literal["numeric_bins"] = "numeric_bins"
+    scale: float = 1.0
+    thresholds: list[float]
+    labels: list[str]
+
+
 class DecisionTreeTask(BaseModel):
     type: str = "classification"
     target_column: str
     positive_class: str | None = None
+    target_transform: DecisionTreeTargetTransform | None = None
 
 
 class DecisionTreeSplit(BaseModel):
@@ -43,6 +51,7 @@ class DecisionTreeModelConfig(BaseModel):
 
 
 class DecisionTreeConfig(BaseModel):
+    preset: Literal["indonesia", "india"] | None = None
     task: DecisionTreeTask
     columns: list[DecisionTreeColumn]
     preprocessing: DecisionTreePreprocessingConfig = DecisionTreePreprocessingConfig()

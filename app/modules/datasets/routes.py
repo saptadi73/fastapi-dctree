@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Query, Request, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,11 @@ from app.modules.datasets.service import DatasetService
 from app.support.responses import success_response
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
+
+
+@router.get("/configuration-presets")
+async def list_configuration_presets(request: Request, session: AsyncSession = Depends(get_db_session)):
+    return success_response(DatasetService(session).list_configuration_presets(), request)
 
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
@@ -85,9 +91,10 @@ async def get_dataset_table(
 async def recommend_dataset_config(
     dataset_id: uuid.UUID,
     request: Request,
+    preset: Literal["indonesia", "india"] = Query(...),
     session: AsyncSession = Depends(get_db_session),
 ):
-    recommendation = await DatasetService(session).recommend_dataset_config(dataset_id)
+    recommendation = await DatasetService(session).recommend_dataset_config(dataset_id, preset=preset)
     return success_response(recommendation, request)
 
 
@@ -105,7 +112,8 @@ async def get_eda_visualization(
 async def get_target_conversion_preview(
     dataset_id: uuid.UUID,
     request: Request,
+    preset: Literal["indonesia", "india"] = Query(...),
     session: AsyncSession = Depends(get_db_session),
 ):
-    data = await DatasetService(session).get_target_conversion_preview(dataset_id)
+    data = await DatasetService(session).get_target_conversion_preview(dataset_id, preset=preset)
     return success_response(data, request)

@@ -184,16 +184,65 @@ Frontend use case:
 - ringkasan kualitas data;
 - tabel profil kolom.
 
-### 3. Rekomendasi Konfigurasi untuk Penentuan Target
+### 3. Pilihan Preset dan Konfigurasi Dataset
 
-`POST /datasets/{dataset_id}/recommend-config`
+Frontend wajib meminta pengguna memilih preset. Jangan menentukan preset dari nama file atau hasil tebakan otomatis.
 
-Fungsi:
+Daftar pilihan:
 
-- memilih kandidat target;
-- memberi rekomendasi role tiap kolom;
-- memberi `positive_class` untuk klasifikasi biner.
-- memberi default blok `preprocessing` untuk mode training.
+`GET /datasets/configuration-presets`
+
+Contoh respons `data`:
+
+```json
+[
+  {
+    "id": "indonesia",
+    "label": "Mahasiswa Indonesia",
+    "description": "Kuesioner mahasiswa Indonesia dengan target persepsi prestasi akademik."
+  },
+  {
+    "id": "india",
+    "label": "Mahasiswa India",
+    "description": "Dataset CGPA India dengan target Rendah, Sedang, dan Tinggi."
+  }
+]
+```
+
+Setelah dataset diunggah dan preset dipilih:
+
+`POST /datasets/{dataset_id}/recommend-config?preset=indonesia`
+
+atau:
+
+`POST /datasets/{dataset_id}/recommend-config?preset=india`
+
+Query `preset` wajib diisi. Backend memeriksa kolom wajib dan mengembalikan error jika struktur dataset tidak cocok. Respons sukses berisi konfigurasi final yang harus disimpan frontend tanpa mengganti target, fitur aktif, transformasi target, atau parameter model secara diam-diam.
+
+Perbedaan preset:
+
+| Bagian | Indonesia | India |
+|---|---|---|
+| Target | Pertanyaan persepsi prestasi akademik | `current_sem_CGPA` |
+| Transformasi target | Tidak ada | Skala `0.01`, batas `7.0` dan `8.0` |
+| Kelas | `Tidak`, `Ya` | `Rendah`, `Sedang`, `Tinggi` |
+| Fitur | Delapan kolom kuesioner aktif | `daily_screen_time_hours`, `social_media_hours` |
+| `min_samples_leaf` | `1` | `5` |
+
+Preset India mengembalikan blok berikut di dalam `task`:
+
+```json
+{
+  "target_column": "current_sem_CGPA",
+  "positive_class": null,
+  "target_transform": {
+    "type": "numeric_bins",
+    "scale": 0.01,
+    "thresholds": [7.0, 8.0],
+    "labels": ["Rendah", "Sedang", "Tinggi"]
+  }
+}
+```
 
 Contoh blok config preprocessing:
 
@@ -217,12 +266,13 @@ Arti mode:
 
 ### 4. Preview Konversi Target atau CGPA ke Kategori
 
-`GET /datasets/{dataset_id}/target-conversion-preview`
+`GET /datasets/{dataset_id}/target-conversion-preview?preset={preset}`
 
 Fungsi:
 
-- menampilkan target hasil rekomendasi;
+- menampilkan target sesuai preset yang dipilih;
 - menampilkan distribusi kategori target;
+- menampilkan `target_transform` yang akan digunakan saat training;
 - menampilkan `positive_class`;
 - menjadi endpoint utama untuk langkah konversi CGPA ke kategori klasifikasi.
 
@@ -448,8 +498,15 @@ Contoh respons:
         "visualization_type": "config-summary",
         "endpoint": null,
         "data": {
-          "target_column": "cgpa_category",
-          "positive_class": "High"
+          "preset": "india",
+          "target_column": "current_sem_CGPA",
+          "positive_class": null,
+          "target_transform": {
+            "type": "numeric_bins",
+            "scale": 0.01,
+            "thresholds": [7.0, 8.0],
+            "labels": ["Rendah", "Sedang", "Tinggi"]
+          }
         }
       },
       {
@@ -562,6 +619,88 @@ Catatan penting:
 
 ## Contoh Training Dataset Medsos
 
+### Alur Implementasi Frontend
+
+Urutan UI yang disarankan:
+
+1. Upload dataset dan simpan `dataset_id` dari respons.
+2. Ambil daftar preset dari `GET /datasets/configuration-presets`.
+3. Tampilkan dua radio button atau selection cards: `Mahasiswa Indonesia` dan `Mahasiswa India`.
+4. Nonaktifkan tombol lanjut sampai pengguna memilih salah satu preset.
+5. Panggil `recommend-config` dengan preset pilihan.
+6. Tampilkan halaman konfirmasi berisi target, transformasi target, fitur aktif, split, dan parameter model.
+7. Panggil `target-conversion-preview` dengan preset yang sama dan tampilkan distribusi kelas.
+8. Saat training, kirim objek konfigurasi hasil `recommend-config` sebagai string pada field multipart `config_json`.
+
+Tipe minimum frontend:
+
+```ts
+type DatasetPreset = "indonesia" | "india";
+
+interface ConfigurationPreset {
+  id: DatasetPreset;
+  label: string;
+  description: string;
+}
+
+interface TargetTransform {
+  type: "numeric_bins";
+  scale: number;
+  thresholds: number[];
+  labels: string[];
+}
+
+interface DecisionTreeConfig {
+  preset: DatasetPreset;
+  task: {
+    type: "classification";
+    target_column: string;
+    positive_class: string | null;
+    target_transform: TargetTransform | null;
+  };
+  preprocessing: Record<string, boolean | string>;
+  columns: Array<{
+    name: string;
+    data_type: string;
+    role: "feature" | "target" | "identifier" | "excluded";
+    enabled: boolean;
+  }>;
+  split: Record<string, number | boolean | string>;
+  model: Record<string, number | string | null>;
+}
+```
+
+Contoh pemanggilan:
+
+```ts
+const configResponse = await api.post(
+  `/datasets/${datasetId}/recommend-config`,
+  undefined,
+  { params: { preset: selectedPreset } },
+);
+
+const config = configResponse.data.data as DecisionTreeConfig;
+const form = new FormData();
+form.append("run_name", runName);
+form.append("config_json", JSON.stringify(config));
+form.append("file", uploadedFile);
+await api.post("/experiments/runs/upload-train", form);
+```
+
+Aturan state dan validasi UI:
+
+- Reset `config` dan preview jika pengguna mengganti preset.
+- Jangan mengaktifkan tombol training sebelum rekomendasi untuk preset terbaru berhasil dimuat.
+- Tampilkan `preset_label`, target, fitur aktif, dan parameter model pada dialog konfirmasi.
+- Jangan mengubah `target_transform` di sisi frontend.
+- Jika backend mengembalikan HTTP `422`, tampilkan bahwa preset wajib dipilih.
+- Jika backend mengembalikan pesan `Dataset tidak cocok`, pertahankan file yang sudah diunggah dan minta pengguna memilih preset lain atau mengganti file.
+- Gunakan preset yang sama untuk `recommend-config` dan `target-conversion-preview`.
+
+Konfigurasi final ikut tersimpan pada experiment run. Halaman detail hasil dapat membaca `config_json.preset`, sedangkan workflow menampilkan `steps[].data.preset` dan `steps[].data.target_transform` pada tahap konversi target.
+
+### Dataset Mahasiswa Indonesia
+
 File contoh:
 
 `Pengaruh Medsos Nilai Akademik Mahasiswa Indonesia.xlsx`
@@ -613,6 +752,14 @@ Catatan interpretasi:
 - Baris confusion matrix mengikuti orientasi `rows = actual`, `columns = predicted`.
 - Label matrix untuk dataset ini adalah `["Tidak", "Ya"]`.
 - Mode `strict` dipakai agar kategori `Program Studi/Jurusan` dan `Platform Media Sosial` lebih ringkas untuk visualisasi frontend.
+
+### Dataset Mahasiswa India
+
+Config referensi:
+
+`docs/sample_config_mahasiswa_india.json`
+
+Gunakan `preset=india` saat mengambil rekomendasi dan preview. Hasil konfigurasi memakai dua fitur, pembagian stratified `80:20`, `random_state=42`, `max_depth=4`, dan `min_samples_leaf=5`. Target `current_sem_CGPA` dikalikan `0.01`, lalu dibagi menjadi `Rendah < 7.0`, `Sedang 7.0-7.99`, dan `Tinggi >= 8.0`.
 
 ## Mapping 7 Langkah ke Endpoint
 

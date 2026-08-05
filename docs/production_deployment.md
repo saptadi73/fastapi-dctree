@@ -1,5 +1,56 @@
 # Production deployment (Python 3.10)
 
+Python 3.10 adalah versi runtime standar untuk development dan production.
+Production Ubuntu 22.04 dan environment lokal harus memakai major/minor version
+yang sama agar wheel biner pandas, NumPy, SciPy, dan scikit-learn konsisten.
+
+## Local development on Windows
+
+Install Python 3.10 64-bit, lalu buat virtual environment baru dari executable
+3.10. Jangan memakai kembali virtual environment yang dibuat oleh Python 3.14.
+
+```powershell
+C:\Users\<user>\AppData\Local\Programs\Python\Python310\python.exe -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\.venv\Scripts\Activate.ps1
+python --version
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload
+```
+
+Nilai `python --version` harus menunjukkan `Python 3.10.x`. Dokumentasi API
+development tersedia di `http://127.0.0.1:8000/docs`.
+
+Jika `.venv` lama menggunakan versi Python lain, simpan sebagai backup sebelum
+membuat ulang environment:
+
+```powershell
+deactivate
+Rename-Item .venv .venv-python-old-backup
+```
+
+### Troubleshooting pandas DLL on Windows
+
+Pesan berikut menunjukkan masalah runtime/dependensi, bukan kesalahan FastAPI:
+
+```text
+ImportError: DLL load failed ... An Application Control policy has blocked this file.
+```
+
+Periksa versi aktif:
+
+```powershell
+python --version
+python -m pip show pandas numpy scikit-learn
+```
+
+Untuk konfigurasi proyek saat ini, instalasi dari `requirements.txt` pada Python
+3.10 menghasilkan lini versi yang didukung: pandas `2.2.x`, NumPy `1.26-2.0`,
+dan scikit-learn `1.5.x`. Jika environment berisi pandas `3.x`, NumPy di atas
+`2.0`, atau Python `3.14`, buat ulang `.venv`; jangan memperbaiki environment
+tersebut dengan menyalin DLL secara manual.
+
 ## Prepare the host
 
 Use a clean Python 3.10 virtual environment. The bounded versions in

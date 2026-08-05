@@ -84,7 +84,7 @@ flowchart TB
 
 ### 3.2 Rekomendasi teknologi
 
-- Python 3.12.
+- Python 3.10 untuk konsistensi dengan runtime production Ubuntu 22.04.
 - FastAPI dan Uvicorn.
 - PostgreSQL 18.
 - SQLAlchemy 2.x async.

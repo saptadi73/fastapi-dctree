@@ -1,0 +1,22 @@
+{
+  "task": {
+    "type": "classification",
+    "target_column": "current_sem_CGPA",
+    "positive_class": null,
+    "target_transform": {
+      "type": "numeric_bins",
+      "scale": 0.01,
+      "thresholds": [7.0, 8.0],
+      "labels": ["Rendah", "Sedang", "Tinggi"]
+    }
+  },
+  "preprocessing": {"mode": "strict", "collapse_rare_study_programs": true, "simplify_social_media_platforms": true, "normalize_binary_labels": true, "normalize_duration_buckets": true},
+  "columns": [
+    {"name": "student_ID", "data_type": "categorical", "role": "identifier", "enabled": false},
+    {"name": "daily_screen_time_hours", "data_type": "numeric", "role": "feature", "enabled": true},
+    {"name": "social_media_hours", "data_type": "numeric", "role": "feature", "enabled": true},
+    {"name": "current_sem_CGPA", "data_type": "numeric", "role": "target", "enabled": true}
+  ],
+  "split": {"test_size": 0.2, "stratify": true, "random_state": 42},
+  "model": {"criterion": "gini", "splitter": "best", "max_depth": 4, "min_samples_split": 2, "min_samples_leaf": 5, "random_state": 42}
+}

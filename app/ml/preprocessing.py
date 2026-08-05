@@ -4,7 +4,10 @@ import re
 
 import pandas as pd
 
-from app.modules.experiments.schemas import DecisionTreePreprocessingConfig
+from app.modules.experiments.schemas import (
+    DecisionTreePreprocessingConfig,
+    DecisionTreeTargetTransform,
+)
 
 
 YES_VALUES = {"ya", "iya", "y", "yes"}
@@ -91,6 +94,22 @@ def normalize_dataframe(
             normalized[column_name] = _normalize_text_series(column_name, series, config)
 
     return normalized
+
+
+def transform_target_series(
+    series: pd.Series,
+    transform: DecisionTreeTargetTransform | None,
+) -> pd.Series:
+    if transform is None:
+        return series
+    if len(transform.labels) != len(transform.thresholds) + 1:
+        raise ValueError("Target bin labels must contain one more item than thresholds.")
+    if transform.thresholds != sorted(transform.thresholds):
+        raise ValueError("Target bin thresholds must be sorted ascending.")
+
+    numeric = pd.to_numeric(series, errors="coerce") * transform.scale
+    bins = [float("-inf"), *transform.thresholds, float("inf")]
+    return pd.cut(numeric, bins=bins, labels=transform.labels, right=False).astype("string")
 
 
 def _normalize_text_series(

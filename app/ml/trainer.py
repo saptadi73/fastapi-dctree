@@ -17,6 +17,7 @@ from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.tree import DecisionTreeClassifier, export_text
 
 from app.modules.experiments.schemas import DecisionTreeConfig
+from app.ml.preprocessing import transform_target_series
 
 
 def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> dict[str, Any]:
@@ -30,7 +31,10 @@ def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> 
         raise ValueError("At least one feature column must be enabled.")
 
     X = dataframe[feature_columns].copy()
-    y = dataframe[target_column].map(_format_target_label)
+    transformed_target = transform_target_series(
+        dataframe[target_column], config.task.target_transform
+    )
+    y = transformed_target.map(_format_target_label)
     valid_target_mask = y.notna()
     X = X.loc[valid_target_mask]
     y = y.loc[valid_target_mask]
@@ -130,6 +134,9 @@ def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> 
         average="weighted",
         zero_division=0,
     )
+    macro_precision, macro_recall, macro_f1_score, _ = precision_recall_fscore_support(
+        y_test, predictions, average="macro", zero_division=0
+    )
 
     model = pipeline.named_steps["model"]
     preprocessor = pipeline.named_steps["preprocessor"]
@@ -162,6 +169,10 @@ def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> 
         },
         "preprocessing_summary": {
             "target_column": target_column,
+            "target_transform": (
+                config.task.target_transform.model_dump()
+                if config.task.target_transform else None
+            ),
             "preprocessing_config": config.preprocessing.model_dump(),
             "numeric_features": numeric_columns,
             "categorical_features": categorical_columns,
@@ -189,6 +200,12 @@ def train_decision_tree(dataframe: pd.DataFrame, config: DecisionTreeConfig) -> 
             "recall": float(weighted_recall),
             "f1_score": float(weighted_f1_score),
             "f1": float(weighted_f1_score),
+            "macro_precision": float(macro_precision),
+            "macro_recall": float(macro_recall),
+            "macro_f1_score": float(macro_f1_score),
+            "weighted_precision": float(weighted_precision),
+            "weighted_recall": float(weighted_recall),
+            "weighted_f1_score": float(weighted_f1_score),
         },
         "class_metrics": class_metrics,
         "classification_report": classification_report(
